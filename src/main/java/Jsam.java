@@ -11,6 +11,7 @@ import java.io.*;
 public class Jsam extends Socket {
     public String SAMHost = "127.0.0.1";
     public int SAMPort = 7656;
+    public String[] SAMOpts = new String[]{"inbound.length=3", "outbound.length=3", "inbound.quantity=1", "outbound.quantity=1"};
     private String ID = "";
     private Socket control = new Socket();
     private PrintWriter writer;
@@ -28,10 +29,28 @@ public class Jsam extends Socket {
     public Jsam() {
         startConnection(control);
     }
+    public Jsam(String host, int port) {
+        SAMHost = host;
+        SAMPort = port;
+        startConnection(control);
+    }
+    public Jsam(String host, int port, String[] options) {
+        SAMHost = host;
+        SAMPort = port;
+        SAMOpts = options;
+        startConnection(control);
+    }
     public Jsam(String host, int port, SIGNATURE_TYPE sig) {
         SAMHost = host;
         SAMPort = port;
         SigType = sig;
+        startConnection(control);
+    }
+    public Jsam(String host, int port, SIGNATURE_TYPE sig, String[] options) {
+        SAMHost = host;
+        SAMPort = port;
+        SigType = sig;
+        SAMOpts = options;
         startConnection(control);
     }
     public void startConnection(Socket socket) {
@@ -52,7 +71,7 @@ public class Jsam extends Socket {
         }
     }
     public String SAMAddress() {
-        return SAMHost + ":" + SAMPort.toString();
+        return SAMHost + ":" + SAMPort;
     }
     public String SignatureType() {
         switch (SigType) {
@@ -68,6 +87,13 @@ public class Jsam extends Socket {
             return "SIGNATURE_TYPE=EdDSA_SHA512_Ed25519";
         }
         return "";
+    }
+    public String GetSAMOpts() {
+        String r = "";
+        for (int x = 0; x < SAMOpts.length; x++) {
+            r += " " + SAMOpts[x];
+        }
+        return r;
     }
     public boolean HelloSAM() {
         Reply repl = CommandSAM("HELLO VERSION MIN=3.1 MAX=3.1");
@@ -93,7 +119,7 @@ public class Jsam extends Socket {
         }
         ID = id;
         System.out.println("Using ID " + ID);
-        String cmd = "SESSION CREATE STYLE=STREAM ID=" + ID + " DESTINATION=" + destination + " " + SignatureType();
+        String cmd = "SESSION CREATE STYLE=STREAM ID=" + ID + " DESTINATION=" + destination + " " + SignatureType() + " " + GetSAMOpts();
         Reply repl = CommandSAM(cmd);
         if (repl.result == Reply.REPLY_TYPES.OK) {
             System.out.println(repl.String());
@@ -111,7 +137,7 @@ public class Jsam extends Socket {
         if (destination.endsWith(".i2p")) {
             destination = LookupName(destination);
         }
-        String cmd = "STREAM CONNECT ID=" + id + " DESTINATION=" + destination + " SILENT=false";
+        String cmd = "STREAM CONNECT ID=" + id + " DESTINATION=" + destination + " SILENT=false" + " ";
         Reply repl = CommandSAM(cmd);
         if (repl.result == Reply.REPLY_TYPES.OK) {
             System.out.println(repl.String());
@@ -126,7 +152,7 @@ public class Jsam extends Socket {
     public String AcceptSession(String id) {
         startConnection(this);
         HelloSAM();
-        String cmd = "STREAM ACCEPT ID=" + id  + " SILENT=false";
+        String cmd = "STREAM ACCEPT ID=" + id  + " SILENT=false" + " ";
         Reply repl = CommandSAM(cmd);
         if (repl.result == Reply.REPLY_TYPES.OK) {
             System.out.println(repl.String());
